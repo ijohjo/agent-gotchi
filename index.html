@@ -662,7 +662,6 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "CHAPEAU COWBOY": "COWBOY HAT",
   "CHAPEAU DE FÊTE": "PARTY HAT",
   "CHAPEAU DE SORCIER": "WIZARD HAT",
-  "CHAT": "CAT",
   "CHÂTEAU HANTÉ": "HAUNTED CASTLE",
   "CLAC !": "CRACK!",
   "CLAUDE DÉCONNECTÉ : LANCE `claude` PUIS /login": "CLAUDE LOGGED OUT: RUN `claude` THEN /login",
@@ -1416,7 +1415,8 @@ const ARM = [[16, 0, 'o'], [15, 1, 'o'], [16, 1, 'b'], [17, 1, 'o'], [15, 2, 'o'
 
 // ---------- espèces : même grille 16×15 et même visage (yeux lignes 5-9, bouche 10-11) ----------
 const SPECIES = {
-  chat: { label: tr("CHAT"), top: 2, rows: BODY },
+  // L'espèce « chat » (l'animal) : pas de clé "CHAT" dans le dictionnaire, sinon le bouton CHAT (la discussion) deviendrait « CAT ».
+  chat: { label: LANG === 'en' ? 'CAT' : 'CHAT', top: 2, rows: BODY },
   slime: {
     label: tr("SLIME"), top: 3, feet: false, rows: [
       '................', '................', '......oooo......', '....oobbbboo....', '...obllbbbbbo...',

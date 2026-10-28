@@ -97,7 +97,6 @@ module.exports = {
   "CHAPEAU COWBOY": "COWBOY HAT",
   "CHAPEAU DE FÊTE": "PARTY HAT",
   "CHAPEAU DE SORCIER": "WIZARD HAT",
-  "CHAT": "CAT",
   "CHÂTEAU HANTÉ": "HAUNTED CASTLE",
   "CLAC !": "CRACK!",
   "CLAUDE DÉCONNECTÉ : LANCE `claude` PUIS /login": "CLAUDE LOGGED OUT: RUN `claude` THEN /login",
