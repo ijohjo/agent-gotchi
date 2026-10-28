@@ -401,7 +401,7 @@ body.no-aside main{grid-template-columns:1fr}
       <p>Ouvre le chat d'un agent puis appuie sur ta touche pour lui parler. Une touche qui écrit (lettre, Espace) ne marche pas pendant que tu tapes, sauf avec Ctrl ; une touche F1-F12 ou un bouton latéral de souris marche partout. Pour répondre à une permission, dis « <b>oui</b> » ou « <b>non</b> ».</p>
     </div></div>
     <div class="spane" id="alertPanel" data-p="alerts"><div class="voice">
-      <label><input type="checkbox" id="notifOn"> Notifications Windows</label>
+      <label><input type="checkbox" id="notifOn"> Notifications du bureau</label>
       <p id="notifNote">Quand un agent a fini ou attend ta permission, et que le jeu n'est pas au premier plan.</p>
       <label>Alerte limites à
         <select class="msel" id="alertAt" style="flex:1">
@@ -630,7 +630,7 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "Au secours !!": "Help!!",
   "Aucune quête": "No quest",
   "Aucune session Claude Code repérée pour l'instant.": "No Claude Code session spotted yet.",
-  "Aucune voix trouvée dans cette fenêtre : la voix par défaut de Windows sera utilisée.": "No voice found in this window: the Windows default voice will be used.",
+  "Aucune voix trouvée dans cette fenêtre : la voix par défaut du système sera utilisée.": "No voice found in this window: the system default voice will be used.",
   "Avec ça je repars !": "That gets me going!",
   "Avoir 500 pièces en poche": "Have 500 coins at once",
   "Aïe ! J'attends ton prochain message...": "Ouch! Waiting for your next message...",
@@ -696,7 +696,7 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "DORT": "ASLEEP",
   "DOSSIER INTROUVABLE": "FOLDER NOT FOUND",
   "Dictée": "Dictation",
-  "Dictée : Whisper indisponible, reconnaissance Windows utilisée en secours.": "Dictation: Whisper unavailable, using Windows recognition as fallback.",
+  "Dictée : Whisper indisponible, reconnaissance du système utilisée en secours.": "Dictation: Whisper unavailable, using system recognition as fallback.",
   "Dictée : Whisper sur {0} (local, haute précision).": "Dictation: Whisper on {0} (local, high accuracy).",
   "Dictée impossible : {0}": "Dictation failed: {0}",
   "Donne-lui une tâche ; quête finie = pièces + XP": "Give it a task; a finished quest earns coins + XP",
@@ -943,7 +943,7 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "VOIX": "VOICE",
   "Vitesse": "Speed",
   "Voix": "Voice",
-  "Voix en ligne indisponibles dans cette fenêtre : le jeu utilise les voix de Windows.": "Online voices unavailable in this window: the game uses Windows voices.",
+  "Voix en ligne indisponibles dans cette fenêtre : le jeu utilise les voix du système.": "Online voices unavailable in this window: the game uses system voices.",
   "Voix indisponible ({0}) : vérifie ta connexion ou choisis une autre voix.": "Voice unavailable ({0}): check your connection or pick another voice.",
   "Y a un bug qui traîne !": "There's a bug crawling around!",
   "Zéro bug": "Zero bugs",
@@ -1022,7 +1022,7 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "Marche aussi hors du jeu": "Works outside the game too",
   "ALERTES &amp; FILE": "ALERTS &amp; QUEUE",
   "ALERTES & FILE": "ALERTS & QUEUE",
-  "Notifications Windows": "Windows notifications",
+  "Notifications du bureau": "Desktop notifications",
   "Alerte limites à": "Limit alert at",
   "Pause de la file à": "Pause queue at",
   "METTRE LA FILE EN PAUSE": "PAUSE THE QUEUE",
@@ -3606,7 +3606,7 @@ function probeOnline() {
   if (!v) { voice.onlineOK = false; return fillVoices(); }
   voice.onlineOK = 'test';
   const u = new SpeechSynthesisUtterance('test'); u.voice = v; u.volume = 0;
-  const done = ok => { if (voice.onlineOK !== 'test') return; voice.onlineOK = ok; fillVoices(); if (!ok) log(tr("Voix en ligne indisponibles dans cette fenêtre : le jeu utilise les voix de Windows.")); };
+  const done = ok => { if (voice.onlineOK !== 'test') return; voice.onlineOK = ok; fillVoices(); if (!ok) log(tr("Voix en ligne indisponibles dans cette fenêtre : le jeu utilise les voix du système.")); };
   u.onend = () => done(true); u.onerror = e => done(e.error === 'interrupted' || e.error === 'canceled' ? null : false);
   speechSynthesis.speak(u); setTimeout(() => done(false), 6000);
 }
@@ -3809,7 +3809,7 @@ function pttStop() {
       if (!r.ok) { toast(tr("DICTÉE : ÉCHEC (VOIR JOURNAL)")); log(tr("Dictée impossible : {0}", [esc(r.error || '?')])); voice.agent = null; return; }
       if (!r.text) { toast(tr("JE N'AI RIEN COMPRIS, RÉESSAIE")); voice.agent = null; return; }
       const eng = r.engine + (r.where || '');
-      if (eng !== mic.engine) { mic.engine = eng; log(r.engine === 'whisper' ? tr("Dictée : Whisper sur {0} (local, haute précision).", [esc(r.where || 'PC')]) : tr("Dictée : Whisper indisponible, reconnaissance Windows utilisée en secours.")); }
+      if (eng !== mic.engine) { mic.engine = eng; log(r.engine === 'whisper' ? tr("Dictée : Whisper sur {0} (local, haute précision).", [esc(r.where || 'PC')]) : tr("Dictée : Whisper indisponible, reconnaissance du système utilisée en secours.")); }
       voice.text = r.text; pttFinish();
     })
     .catch(() => { hideMic(); voice.agent = null; toast(tr("SERVEUR INJOIGNABLE")); });
@@ -3911,7 +3911,7 @@ $('#vname').addEventListener('change', e => {
 });
 $('#vtest').addEventListener('click', () => {
   const v = pickVoice();
-  if (!v) log(tr("Aucune voix trouvée dans cette fenêtre : la voix par défaut de Windows sera utilisée."));
+  if (!v) log(tr("Aucune voix trouvée dans cette fenêtre : la voix par défaut du système sera utilisée."));
   speak(chat.agent(chat.active) || agents[0], tr("Bonjour boss ! Je suis prêt. Dis-moi ce que je dois faire."), true);
 });
 if ('speechSynthesis' in window) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; }

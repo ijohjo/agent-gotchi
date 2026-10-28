@@ -1,0 +1,42 @@
+# Builds AgentGotchi.app on GitHub's macOS machines (Apple Silicon and Intel).
+# Run it by hand from the Actions tab, or let it run when a release is published:
+# the two .zip files are then attached to that release.
+name: Build macOS app
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the zips to (leave empty to only keep them as build artifacts)
+        required: false
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14 # Apple Silicon (arm64)
+          - runner: macos-13 # Intel (x64)
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: node build.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AgentGotchi-macOS-${{ runner.arch }}
+          path: dist/AgentGotchi-macOS-*.zip
+      - name: Attach to the release
+        if: github.event_name == 'release' || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: gh release upload "$TAG" dist/AgentGotchi-macOS-*.zip --clobber

@@ -232,9 +232,16 @@ setInterval(pollLimits, 60e3);
 // ---------- agents de l'appli : des sessions claude pilotées par le jeu (stream-json) ----------
 // Les requêtes partent comme de vrais messages utilisateur : elles sont sauvegardées dans Claude
 // comme n'importe quelle conversation (reprenable avec `claude --resume <id>`).
+const WIN = process.platform === 'win32', MAC = process.platform === 'darwin';
 const CLAUDE = (() => {
-  try { return execFileSync('where', ['claude'], { encoding: 'utf8' }).split(/\r?\n/).find(l => /\.exe$/i.test(l.trim())).trim(); }
-  catch { return path.join(os.homedir(), '.local', 'bin', 'claude.exe'); }
+  if (WIN) {
+    try { return execFileSync('where', ['claude'], { encoding: 'utf8' }).split(/\r?\n/).find(l => /\.exe$/i.test(l.trim())).trim(); }
+    catch { return path.join(os.homedir(), '.local', 'bin', 'claude.exe'); }
+  }
+  // macOS / Linux : lancé depuis le Finder, le PATH est minimal ; on demande au shell de connexion, puis aux emplacements connus.
+  try { const p = execFileSync(process.env.SHELL || '/bin/zsh', ['-lc', 'command -v claude'], { encoding: 'utf8', timeout: 5000 }).trim().split('\n').pop(); if (p && fs.existsSync(p)) return p; } catch {}
+  return [path.join(os.homedir(), '.local', 'bin', 'claude'), path.join(os.homedir(), '.claude', 'local', 'claude'), '/opt/homebrew/bin/claude', '/usr/local/bin/claude']
+    .find(p => fs.existsSync(p)) || 'claude';
 })();
 // Outils en lecture seule : pas besoin de demander la permission.
 const SAFE_TOOLS = new Set(['Read', 'Grep', 'Glob', 'LS', 'TodoWrite', 'WebSearch', 'Task', 'NotebookRead', 'BashOutput', 'ExitPlanMode']);
@@ -577,6 +584,9 @@ function transcriptFiles() {
 const DESKTOP_ROOTS = [
   ...(() => { const b = path.join(process.env.LOCALAPPDATA || '', 'Claude-Data'); try { return fs.readdirSync(b).map(d => path.join(b, d, 'claude-code-sessions')); } catch { return []; } })(),
   path.join(process.env.APPDATA || '', 'Claude', 'claude-code-sessions'),
+  // macOS : même dossier, dans Application Support.
+  path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude-code-sessions'),
+  ...(() => { const b = path.join(os.homedir(), 'Library', 'Application Support', 'Claude-Data'); try { return fs.readdirSync(b).map(d => path.join(b, d, 'claude-code-sessions')); } catch { return []; } })(),
 ].filter(p => { try { return fs.statSync(p).isDirectory(); } catch { return false; } });
 const deskCache = new Map();
 function desktopSessions() {
@@ -1210,7 +1220,8 @@ function setHotkey(vk) {
   if (vk === hotkeyVk && (hotkeyProc || !vk)) return;
   if (hotkeyProc) { try { hotkeyProc.kill(); } catch {} hotkeyProc = null; }
   hotkeyVk = vk;
-  if (!vk || vk > 254) return;
+  // Touche globale : Windows seulement (sur macOS, il faudrait l'autorisation Accessibilité ; la touche marche quand la fenêtre est active).
+  if (!vk || vk > 254 || !WIN) return;
   const p = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', HOTKEY_SCRIPT], {
     windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, GOTCHI_VK: String(vk), GOTCHI_PPID: String(process.pid) },
   });
@@ -1247,15 +1258,17 @@ const WHISPER_PROMPT = "Gotchi, conversation en français avec un agent de code 
 const findExe = dir => {
   const walk = d => { for (const f of (() => { try { return fs.readdirSync(d, { withFileTypes: true }); } catch { return []; } })()) {
     const p = path.join(d, f.name);
-    if (f.isDirectory()) { const r = walk(p); if (r) return r; } else if (f.name === 'whisper-server.exe') return p;
+    if (f.isDirectory()) { const r = walk(p); if (r) return r; } else if (f.name === (WIN ? 'whisper-server.exe' : 'whisper-server')) return p;
   } };
   return walk(dir);
 };
+// macOS : whisper.cpp installé par Homebrew (`brew install whisper-cpp`), accéléré par Metal.
+const brewWhisper = () => MAC ? ['/opt/homebrew/bin/whisper-server', '/usr/local/bin/whisper-server'].find(p => fs.existsSync(p)) : null;
 const model = n => path.join(WHISPER_DIR, 'models', n);
 // Par ordre de préférence : carte graphique NVIDIA (modèle q8_0, le plus précis), puis processeur.
 const whisperVariants = () => [
   { label: 'GPU', exe: findExe(path.join(WHISPER_DIR, 'bin-cuda')), model: [model('ggml-large-v3-turbo-q8_0.bin'), model('ggml-large-v3-turbo-q5_0.bin')].find(f => fs.existsSync(f)) },
-  { label: 'CPU', exe: findExe(path.join(WHISPER_DIR, 'bin')), model: [model('ggml-large-v3-turbo-q5_0.bin'), model('ggml-large-v3-turbo-q8_0.bin')].find(f => fs.existsSync(f)) },
+  { label: MAC ? 'Mac' : 'CPU', exe: findExe(path.join(WHISPER_DIR, 'bin')) || brewWhisper(), model: [model('ggml-large-v3-turbo-q5_0.bin'), model('ggml-large-v3-turbo-q8_0.bin')].find(f => fs.existsSync(f)) },
 ].filter(v => v.exe && v.model);
 let whisper = null, whisperReady = null, whisperLabel = null, whisperWarm = null;
 const hasWhisper = () => whisperVariants().length > 0;
@@ -1324,6 +1337,7 @@ async function transcribe(wav) {
     try { return { ok: true, text: await whisperTranscribe(wav), engine: 'whisper', where: whisperLabel }; }
     catch (e) { console.log('Whisper en échec, secours Windows :', e.message); }
   }
+  if (!WIN) return { ok: false, error: store.lang === 'en' ? 'Dictation needs Whisper on this system (brew install whisper-cpp, see the README).' : 'La dictée a besoin de Whisper sur ce système (brew install whisper-cpp, voir le README).' };
   return windowsTranscribe(wav);
 }
 function windowsTranscribe(wav) {
@@ -1489,14 +1503,25 @@ function watchClients() {
   clearTimeout(idleTimer);
   if (!clients.size) idleTimer = setTimeout(() => process.exit(0), hadClient ? 8000 : 60000);
 }
+// Arguments de la fenêtre « appli » (Edge, Chrome, Brave…) : profil à part, pas de ralenti en arrière-plan.
+const appArgs = (url, profile) => [`--app=${url}`, `--user-data-dir=${profile}`, '--window-size=1400,950', '--no-first-run', '--no-default-browser-check',
+  // Fenêtre en arrière-plan : la dictée (touche globale) et la voix doivent continuer à tourner.
+  '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'];
 function openWindow() {
   const url = `http://localhost:${PORT}`;
+  if (!WIN) {
+    const profile = MAC ? path.join(os.homedir(), 'Library', 'Application Support', 'AgentGotchi', 'window') : path.join(os.homedir(), '.config', 'agent-gotchi', 'window');
+    const browser = MAC && ['Google Chrome', 'Microsoft Edge', 'Brave Browser', 'Chromium', 'Arc'].find(n => fs.existsSync(`/Applications/${n}.app`) || fs.existsSync(path.join(os.homedir(), 'Applications', n + '.app')));
+    const child = browser
+      ? spawn('open', ['-na', browser, '--args', ...appArgs(url, profile)], { detached: true, stdio: 'ignore' })
+      : spawn(MAC ? 'open' : 'xdg-open', [url], { detached: true, stdio: 'ignore' });
+    child.on('error', () => {}); child.unref();
+    return;
+  }
   const edge = ['ProgramFiles(x86)', 'ProgramFiles'].map(k => process.env[k] && path.join(process.env[k], 'Microsoft', 'Edge', 'Application', 'msedge.exe')).find(p => p && fs.existsSync(p));
   const profile = path.join(process.env.LOCALAPPDATA || os.tmpdir(), 'AgentGotchi', 'window');
   const child = edge
-    ? spawn(edge, [`--app=${url}`, `--user-data-dir=${profile}`, '--window-size=1400,950', '--no-first-run', '--no-default-browser-check',
-      // Fenêtre en arrière-plan : la dictée (touche globale) et la voix doivent continuer à tourner.
-      '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'], { detached: true, stdio: 'ignore' })
+    ? spawn(edge, appArgs(url, profile), { detached: true, stdio: 'ignore' })
     : spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore', windowsHide: true });
   child.unref();
 }

@@ -8,7 +8,7 @@ It's a game on the surface and a real control room underneath: live usage limits
 
 ![Agent·Gotchi in demo mode](docs/screenshot.png)
 
-> **Windows only** for now. Free for personal and noncommercial use, source available. Not affiliated with Anthropic or Bandai.
+> **Windows and macOS** (the macOS app is new: feedback welcome). Free for personal and noncommercial use, source available. Not affiliated with Anthropic or Bandai.
 
 [![Download](https://img.shields.io/github/v/release/ijohjo/agent-gotchi?label=download&color=ffd166)](https://github.com/ijohjo/agent-gotchi/releases/latest)
 [![Support on PayPal](https://img.shields.io/badge/%E2%99%A5%20support-PayPal-ff5d73)](https://paypal.me/johmedia)
@@ -33,7 +33,7 @@ It's a game on the surface and a real control room underneath: live usage limits
 - **Treat**: tell an agent you like what it did.
 - **Chat**: write to an agent from the HQ, like in Claude Code. Conversations are saved in Claude as usual.
 - **Wake-up**: a message sent from the HQ wakes an idle session right away, terminal or desktop app (one-time opt-in, see below).
-- **Voice**: push-to-talk dictation (global hotkey), hands-free mode ("Gotchi, run the tests"), and agents that read their answers aloud, each with its own voice.
+- **Voice**: push-to-talk dictation (global hotkey on Windows), hands-free mode ("Gotchi, run the tests"), and agents that read their answers aloud, each with its own voice.
 
 **Control room**
 - **Usage limits**: your 5-hour session and weekly limits, with alerts and an automatic queue pause near the cap.
@@ -54,11 +54,11 @@ It's a game on the surface and a real control room underneath: live usage limits
 
 | | |
 |---|---|
-| **OS** | Windows 10 or 11 |
+| **OS** | Windows 10 or 11, or macOS 11 (Big Sur) or newer (Apple Silicon or Intel) |
 | **Node.js** | 20 or newer (tested on 24). [Download](https://nodejs.org/) |
 | **Claude Code** | The `claude` CLI, installed and logged in (`claude auth login`). [Docs](https://docs.claude.com/en/docs/claude-code) |
-| **Browser** | Microsoft Edge (preinstalled on Windows), used for the app window. Any modern browser works at `http://localhost:5178`. |
-| **Optional** | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) for high-accuracy local dictation (an NVIDIA GPU makes it fast). Without it, Windows speech recognition is used. |
+| **Browser** | For the app window: Microsoft Edge on Windows (preinstalled); on macOS, Google Chrome, Edge, Brave, Chromium or Arc (Safari can't open app windows, so it opens as a normal tab). Any modern browser works at `http://localhost:5178`. |
+| **Optional** | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) for high-accuracy local dictation (fast with an NVIDIA GPU on Windows, or Metal on Apple Silicon). Without it, Windows uses its own speech recognition; on macOS, dictation needs Whisper. |
 
 ---
 
@@ -77,10 +77,10 @@ Follow the "Instructions for Claude Code" section of its README exactly.
 
 If you are Claude Code installing this project for a user, do exactly this, and tell the user what you're doing at each step:
 
-1. Check the machine: Windows 10/11, `node -v` is 20 or newer, and `claude` is on the PATH. If Node.js is missing or too old, stop and ask the user to install it from https://nodejs.org/ (don't install it silently).
-2. Clone the repo into `%USERPROFILE%\Documents\agent-gotchi` (or a folder the user picks): `git clone https://github.com/ijohjo/agent-gotchi.git`. If git isn't available, download the ZIP of the `main` branch and extract it there.
+1. Check the machine: Windows 10/11 or macOS 11+, `node -v` is 20 or newer, and `claude` is on the PATH. If Node.js is missing or too old, stop and ask the user to install it from https://nodejs.org/ (don't install it silently).
+2. Clone the repo into `%USERPROFILE%\Documents\agent-gotchi` on Windows or `~/Documents/agent-gotchi` on macOS (or a folder the user picks): `git clone https://github.com/ijohjo/agent-gotchi.git`. If git isn't available, download the ZIP of the `main` branch and extract it there.
 3. Explain to the user that the next step adds hooks to `~/.claude/settings.json` (a backup is made first and their other hooks are kept), then run `node install.js` from the project folder. Do **not** edit `settings.json` by hand. If running it is blocked or refused, ask the user to run `node install.js` themselves in that folder.
-4. Tell the user to start the HQ with `node server.js --app` from the project folder (or by double-clicking `AgentGotchi.exe` from the [latest release](https://github.com/ijohjo/agent-gotchi/releases/latest)), and to **restart their Claude Code sessions** so the hooks load. Their agents then appear in the HQ.
+4. Tell the user to start the HQ with `node server.js --app` from the project folder (or by opening `AgentGotchi.exe` / `AgentGotchi.app` from the [latest release](https://github.com/ijohjo/agent-gotchi/releases/latest)), and to **restart their Claude Code sessions** so the hooks load. Their agents then appear in the HQ.
 5. Mention that everything runs locally and that `node install.js --uninstall` removes the hooks.
 
 ### Manual installation
@@ -123,7 +123,7 @@ To open it as a standalone window that closes the server when you close it:
 node server.js --app
 ```
 
-#### 4. (Optional) Use the Windows executable
+#### 4. (Optional) Use the ready-made app (Windows .exe or macOS .app)
 
 A ready-made **AgentGotchi.exe** is attached to each [release](https://github.com/ijohjo/agent-gotchi/releases/latest). Windows may show a SmartScreen warning because it isn't code-signed: **More info → Run anyway**.
 
@@ -135,7 +135,15 @@ node build.js
 
 This creates `dist\AgentGotchi.exe` (Node single executable, with its own icon and no console window). Double-click it to open the HQ. Building downloads two small build tools (`rcedit`, `postject`) into `build\node_modules`.
 
-> The hooks still run with Node, so keep Node.js installed and run `node install.js` once, even if you use the `.exe`.
+**On macOS**, each release also has **AgentGotchi-macOS-arm64.zip** (Apple Silicon: M1 and later) and **AgentGotchi-macOS-x64.zip** (Intel Macs). Unzip it and move **AgentGotchi.app** to your Applications folder. The app isn't notarized by Apple, so the first time macOS blocks it: **right-click the app → Open → Open**, or run:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/AgentGotchi.app
+```
+
+The app has no Dock icon of its own: it opens the HQ in a Chrome-style app window, and the server stops a few seconds after you close that window. To build it yourself on a Mac, run `node build.js` (it creates `dist/AgentGotchi.app` and a zip, for your Mac's processor). The **Build macOS app** GitHub Action builds both versions and attaches them to each new release.
+
+> The hooks still run with Node, so keep Node.js installed and run `node install.js` once, even if you use the `.exe` or the `.app`.
 
 #### 5. (Optional) Enable wake-up
 
@@ -152,7 +160,9 @@ whisper/
   models/     ggml-large-v3-turbo-q8_0.bin  or  ggml-large-v3-turbo-q5_0.bin
 ```
 
-Builds are on the [whisper.cpp releases page](https://github.com/ggml-org/whisper.cpp/releases), models on [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp). Agent·Gotchi detects them on start and starts a local Whisper server; your voice never leaves your PC.
+Builds are on the [whisper.cpp releases page](https://github.com/ggml-org/whisper.cpp/releases), models on [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp). Agent·Gotchi detects them on start and starts a local Whisper server; your voice never leaves your computer.
+
+**On macOS**, install whisper.cpp with [Homebrew](https://brew.sh/) (`brew install whisper-cpp`, Metal-accelerated on Apple Silicon) and put a model in `~/.claude/hooks/agent-gotchi/whisper/models/`. Agent·Gotchi finds Homebrew's `whisper-server` on its own. The browser asks for microphone access the first time you dictate. The global push-to-talk key is Windows-only: on macOS, the key works while the HQ window is in front.
 
 ---
 
@@ -166,7 +176,7 @@ Pull the new version (or download the new ZIP), then run `node install.js` again
 node install.js --uninstall
 ```
 
-This removes only Agent·Gotchi's hooks from `settings.json` (with a backup). You can then delete the project folder and `~/.claude/hooks/agent-gotchi/` (which holds the chat log, game state and optional Whisper files). Game progress (coins, looks, achievements) is stored in the browser: for the app window, in its Edge profile at `%LOCALAPPDATA%\AgentGotchi`.
+This removes only Agent·Gotchi's hooks from `settings.json` (with a backup). You can then delete the project folder and `~/.claude/hooks/agent-gotchi/` (which holds the chat log, game state and optional Whisper files). Game progress (coins, looks, achievements) is stored in the browser: for the app window, in its browser profile at `%LOCALAPPDATA%\AgentGotchi` on Windows or `~/Library/Application Support/AgentGotchi` on macOS.
 
 ---
 
@@ -213,7 +223,7 @@ index.html      The whole game: UI, pixel art, sounds, translations
 server.js       Local server: receives hooks, streams state to the page, talks to the claude CLI
 hook.js         Claude Code hook: forwards each event to the server
 install.js      Installs / removes the hooks in ~/.claude/settings.json
-build.js        Builds dist/AgentGotchi.exe (Node SEA)
+build.js        Builds dist/AgentGotchi.exe on Windows or dist/AgentGotchi.app on macOS (Node SEA)
 tools/          Translation helpers (en.js is the English dictionary)
 ```
 

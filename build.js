@@ -1,18 +1,25 @@
-// Agent·Gotchi — fabrique AgentGotchi.exe (Node SEA : node.exe + server.js + index.html + hook.js).
+// Agent·Gotchi — fabrique l'appli autonome (Node SEA : node + server.js + index.html + hook.js).
+// Windows : AgentGotchi.exe. macOS : AgentGotchi.app (+ un .zip prêt à publier).
+// Le binaire est fait pour le système et le processeur de la machine qui lance le build.
 // Usage : node build.js [dossier de sortie]
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const { execFileSync } = require('child_process');
 
+const WIN = process.platform === 'win32', MAC = process.platform === 'darwin';
+if (!WIN && !MAC) { console.error('Build disponible sur Windows et macOS seulement.'); process.exit(1); }
+const VERSION = require('./package.json').version;
 const ROOT = __dirname, BUILD = path.join(ROOT, 'build');
 const OUT = path.resolve(process.argv[2] || path.join(ROOT, 'dist'));
-const EXE = path.join(OUT, 'AgentGotchi.exe');
+const APPDIR = path.join(OUT, 'AgentGotchi.app');
+const EXE = WIN ? path.join(OUT, 'AgentGotchi.exe') : path.join(APPDIR, 'Contents', 'MacOS', 'AgentGotchi');
 fs.mkdirSync(BUILD, { recursive: true });
 fs.mkdirSync(OUT, { recursive: true });
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
-// Outils de build (rcedit : icône/infos de l'exe, postject : injection du blob), installés dans build/.
+// Outils de build (rcedit : icône/infos de l'exe Windows, postject : injection du blob), installés dans build/.
 const MODS = path.join(BUILD, 'node_modules');
-if (!fs.existsSync(path.join(MODS, 'postject')) || !fs.existsSync(path.join(MODS, 'rcedit'))) {
-  execFileSync('npm', ['install', '--prefix', BUILD, '--no-save', '--no-audit', '--no-fund', 'rcedit@4.0.1', 'postject@1.0.0-alpha.6'], { stdio: 'inherit', shell: true });
+const TOOLS = WIN ? ['rcedit@4.0.1', 'postject@1.0.0-alpha.6'] : ['postject@1.0.0-alpha.6'];
+if (TOOLS.some(t => !fs.existsSync(path.join(MODS, t.split('@')[0])))) {
+  execFileSync('npm', ['install', '--prefix', BUILD, '--no-save', '--no-audit', '--no-fund', ...TOOLS], { stdio: 'inherit', shell: WIN });
 }
 
 // ---------- icône : le petit perso orange, en PNG dans un .ico ----------
@@ -58,7 +65,7 @@ function ico(sizes) {
   return Buffer.concat([head, ...imgs]);
 }
 const ICON = path.join(BUILD, 'icon.ico');
-fs.writeFileSync(ICON, ico([16, 32, 48, 64, 128, 256]));
+if (WIN) fs.writeFileSync(ICON, ico([16, 32, 48, 64, 128, 256]));
 // Même perso en PNG pour la fenêtre du jeu (onglet et barre des tâches) ; servi par server.js.
 const ICON_PNG = path.join(BUILD, 'icon.png');
 fs.writeFileSync(ICON_PNG, png(256));
@@ -76,20 +83,63 @@ fs.writeFileSync(path.join(BUILD, 'sea-config.json'), JSON.stringify({
 }, null, 2));
 execFileSync(process.execPath, ['--experimental-sea-config', path.join('build', 'sea-config.json')], { stdio: 'inherit', cwd: ROOT });
 
-// ---------- exe : copie de node.exe + icône + blob ----------
-fs.copyFileSync(process.execPath, EXE);
-run(path.join(MODS, 'rcedit', 'bin', 'rcedit-x64.exe'), [EXE, '--set-icon', ICON,
-  '--set-version-string', 'ProductName', 'Agent Gotchi',
-  '--set-version-string', 'FileDescription', 'Agent Gotchi',
-  '--set-version-string', 'CompanyName', 'Agent Gotchi',
-  '--set-version-string', 'OriginalFilename', 'AgentGotchi.exe',
-  '--set-version-string', 'InternalName', 'AgentGotchi',
-  '--set-file-version', '1.0.0', '--set-product-version', '1.0.0']);
-run(process.execPath, [path.join(MODS, 'postject', 'dist', 'cli.js'), EXE, 'NODE_SEA_BLOB', BLOB,
-  '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2', '--overwrite']);
+const postject = extra => run(process.execPath, [path.join(MODS, 'postject', 'dist', 'cli.js'), EXE, 'NODE_SEA_BLOB', BLOB,
+  '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2', '--overwrite', ...extra]);
 
-// Sous-système GUI : pas de fenêtre console noire au lancement.
-const buf = fs.readFileSync(EXE), pe = buf.readUInt32LE(0x3c);
-buf.writeUInt16LE(2, pe + 24 + 68);
-fs.writeFileSync(EXE, buf);
-console.log('OK ->', EXE, (buf.length / 1e6).toFixed(0) + ' Mo');
+if (WIN) {
+  // ---------- exe : copie de node.exe + icône + blob ----------
+  fs.copyFileSync(process.execPath, EXE);
+  run(path.join(MODS, 'rcedit', 'bin', 'rcedit-x64.exe'), [EXE, '--set-icon', ICON,
+    '--set-version-string', 'ProductName', 'Agent Gotchi',
+    '--set-version-string', 'FileDescription', 'Agent Gotchi',
+    '--set-version-string', 'CompanyName', 'Agent Gotchi',
+    '--set-version-string', 'OriginalFilename', 'AgentGotchi.exe',
+    '--set-version-string', 'InternalName', 'AgentGotchi',
+    '--set-file-version', VERSION, '--set-product-version', VERSION]);
+  postject([]);
+  // Sous-système GUI : pas de fenêtre console noire au lancement.
+  const buf = fs.readFileSync(EXE), pe = buf.readUInt32LE(0x3c);
+  buf.writeUInt16LE(2, pe + 24 + 68);
+  fs.writeFileSync(EXE, buf);
+  console.log('OK ->', EXE, (buf.length / 1e6).toFixed(0) + ' Mo');
+} else {
+  // ---------- .app : copie de node + blob, icône .icns, signature ad hoc ----------
+  fs.rmSync(APPDIR, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(EXE), { recursive: true });
+  const RES = path.join(APPDIR, 'Contents', 'Resources');
+  fs.mkdirSync(RES, { recursive: true });
+  fs.copyFileSync(process.execPath, EXE);
+  fs.chmodSync(EXE, 0o755);
+  run('codesign', ['--remove-signature', EXE]);
+  postject(['--macho-segment-name', 'NODE_SEA']);
+  // L'icône : un .iconset (le même perso, de 16 à 1024 px) converti par iconutil.
+  const SET = path.join(BUILD, 'icon.iconset');
+  fs.rmSync(SET, { recursive: true, force: true }); fs.mkdirSync(SET);
+  for (const s of [16, 32, 128, 256, 512]) {
+    fs.writeFileSync(path.join(SET, `icon_${s}x${s}.png`), png(s));
+    fs.writeFileSync(path.join(SET, `icon_${s}x${s}@2x.png`), png(s * 2));
+  }
+  run('iconutil', ['-c', 'icns', SET, '-o', path.join(RES, 'AgentGotchi.icns')]);
+  // LSUIElement : pas d'icône dans le Dock pour le serveur ; c'est la fenêtre du navigateur qu'on voit.
+  fs.writeFileSync(path.join(APPDIR, 'Contents', 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>Agent Gotchi</string>
+  <key>CFBundleDisplayName</key><string>Agent Gotchi</string>
+  <key>CFBundleIdentifier</key><string>fr.media-buyer.agentgotchi</string>
+  <key>CFBundleExecutable</key><string>AgentGotchi</string>
+  <key>CFBundleIconFile</key><string>AgentGotchi</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>${VERSION}</string>
+  <key>CFBundleVersion</key><string>${VERSION}</string>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
+  <key>LSUIElement</key><true/>
+</dict></plist>
+`);
+  // Signature ad hoc (obligatoire sur les Mac Apple Silicon) ; l'app n'est pas notariée.
+  run('codesign', ['--sign', '-', '--force', '--deep', APPDIR]);
+  const ZIP = path.join(OUT, `AgentGotchi-macOS-${process.arch}.zip`);
+  fs.rmSync(ZIP, { force: true });
+  run('ditto', ['-c', '-k', '--keepParent', APPDIR, ZIP]);
+  console.log('OK ->', APPDIR, '+', ZIP, (fs.statSync(ZIP).size / 1e6).toFixed(0) + ' Mo');
+}
