@@ -1,0 +1,17 @@
+{
+  "name": "agent-gotchi",
+  "version": "1.0.0",
+  "description": "A Tamagotchi-style HQ for your Claude Code agents.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "Johjo (https://www.media-buyer.fr)",
+  "repository": { "type": "git", "url": "https://github.com/ijohjo/agent-gotchi.git" },
+  "engines": { "node": ">=20" },
+  "os": ["win32"],
+  "scripts": {
+    "start": "node server.js",
+    "app": "node server.js --app",
+    "install-hooks": "node install.js",
+    "uninstall-hooks": "node install.js --uninstall",
+    "build": "node build.js"
+  }
+}
