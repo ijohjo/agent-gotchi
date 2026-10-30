@@ -8,6 +8,12 @@ It's a game on the surface and a real control room underneath: live usage limits
 
 ![Agent·Gotchi HQ with three live Claude Code sessions (sample data)](docs/screenshot.png)
 
+### ▶ Watch the full tutorial
+
+Every feature and how to use it, in 6 minutes.
+
+[![Agent·Gotchi full tutorial on YouTube](docs/tutorial.jpg)](https://www.youtube.com/watch?v=_K-gIaNan4s)
+
 > **Windows and macOS** (the macOS app is new: feedback welcome). Free for personal and noncommercial use, source available. Not affiliated with Anthropic or Bandai.
 
 [![Download](https://img.shields.io/github/v/release/ijohjo/agent-gotchi?label=download&color=ffd166)](https://github.com/ijohjo/agent-gotchi/releases/latest)
