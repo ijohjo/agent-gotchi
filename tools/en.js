@@ -638,4 +638,6 @@ module.exports = {
   "SOUTENIR LE PROJET": "SUPPORT THE PROJECT",
   "Polices : Press Start 2P (CodeMan38) et VT323 (Peter Hull), licence SIL Open Font License. Agent·Gotchi n'est pas un produit officiel d'Anthropic.": "Fonts: Press Start 2P (CodeMan38) and VT323 (Peter Hull), SIL Open Font License. Agent·Gotchi is not an official Anthropic product.",
   "SITE WEB": "WEBSITE",
+  // Carte de permission, champ du nouvel agent, gains et pertes d'humeur
+  "demande : {0}": "asks: {0}", "Nom (optionnel)": "Name (optional)", "HUMEUR": "MOOD",
 };

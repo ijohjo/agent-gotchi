@@ -1296,6 +1296,9 @@ const EN = { // EN:BEGIN (généré par tools/i18n-inject.js depuis tools/en.js)
   "SOUTENIR LE PROJET": "SUPPORT THE PROJECT",
   "Polices : Press Start 2P (CodeMan38) et VT323 (Peter Hull), licence SIL Open Font License. Agent·Gotchi n'est pas un produit officiel d'Anthropic.": "Fonts: Press Start 2P (CodeMan38) and VT323 (Peter Hull), SIL Open Font License. Agent·Gotchi is not an official Anthropic product.",
   "SITE WEB": "WEBSITE",
+  "demande : {0}": "asks: {0}",
+  "Nom (optionnel)": "Name (optional)",
+  "HUMEUR": "MOOD",
 }; // EN:END
 function tr(s, v) {
   let r = LANG === 'en' && EN[s] !== undefined ? EN[s] : s;
@@ -2785,7 +2788,7 @@ class Agent {
       bump('hits');
       this.charT = 4.5; this.hurtT = 1.2;
       this.mood = clamp(this.mood - 25, 0, 100); this.energy = clamp(this.energy - 15, 0, 100);
-      this.pop('-25 HUMEUR', '#ff5d73', false, 4);
+      this.pop('-25 ' + tr('HUMEUR'), '#ff5d73', false, 4);
       setTimeout(() => this.say(pick([tr("Aïe... ça pique."), '*tousse* ...', tr("Pourquoi moi ?!"), tr("Je vois des étoiles...")])), 500);
       log(tr("💥 <b>{0}</b> s'est pris la grenade !", [esc(this.name)]));
     }
@@ -2839,7 +2842,7 @@ class Agent {
     game.whips++; hud();
     this.mood = clamp(this.mood - 15, 0, 100);
     this.pop(tr("CLAC !"), '#fff', true, -6);
-    setTimeout(() => this.pop('-15 HUMEUR', '#ff5d73'), 160);
+    setTimeout(() => this.pop('-15 ' + tr('HUMEUR'), '#ff5d73'), 160);
     if (this.live) { liveAction(this, 'whip').then(r => this.liveWhip(r)); return; }
     const s = this.state;
     if (s === 'sleeping') {
@@ -2866,7 +2869,7 @@ class Agent {
   onEat() {
     SFX.munch();
     this.mood = clamp(this.mood + 22, 0, 100); this.energy = clamp(this.energy + 15, 0, 100); this.hunger = clamp(this.hunger + 40, 0, 100);
-    this.pop('+22 HUMEUR', '#ff8fa3'); setTimeout(() => this.pop('+5 XP', '#6ec3ff'), 250);
+    this.pop('+22 ' + tr('HUMEUR'), '#ff8fa3'); setTimeout(() => this.pop('+5 XP', '#6ec3ff'), 250);
     this.burst('heart', 5);
     if (this.state === 'sleeping') this.setState('idle');
     if (!this.live && this.paused && this.task && Math.random() < .5) { this.paused = false; this.setState('working'); this.say(tr("Avec ça je repars !")); }
@@ -3120,7 +3123,7 @@ class Agent {
     d.perm.classList.toggle('show', waiting);
     d.perm.querySelector('.row').style.display = this.live && !this.owned ? 'none' : 'flex';
     if (waiting) d.permP.innerHTML = `<b style="color:var(--gold);font-weight:normal">${esc(this.name)}</b> `
-      + (this.live && !this.owned ? tr("attend ta réponse dans son terminal : {0}", [esc(this.perm || '')]) : `demande : ${esc(this.perm)}`);
+      + (this.live && !this.owned ? tr("attend ta réponse dans son terminal : {0}", [esc(this.perm || '')]) : tr("demande : {0}", [esc(this.perm)]));
   }
 }
 
