@@ -6,7 +6,7 @@ Every Claude Code session you run becomes a little pixel creature living in its 
 
 It's a game on the surface and a real control room underneath: live usage limits, changed files with diffs, a quest queue, permission rules, team missions, voice dictation and a daily report.
 
-![Agent·Gotchi in demo mode](docs/screenshot.png)
+![Agent·Gotchi HQ with three live Claude Code sessions (sample data)](docs/screenshot.png)
 
 > **Windows and macOS** (the macOS app is new: feedback welcome). Free for personal and noncommercial use, source available. Not affiliated with Anthropic or Bandai.
 
